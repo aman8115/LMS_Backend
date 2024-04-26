@@ -5,11 +5,11 @@ import upload from '../middleware/multer.middle.js'
 const router = express.Router()
 router.post('/rgister',upload.single('avatar'),CreateAccount)
 router.post('/singIn',LogIn)
-router.get('/me', JWTauth,viewProfile)
+router.get('/me', JWTauth, viewProfile)
 router.get('/logout',JWTauth,logOut)
 router.post('/forgot',forgotPassword)
 router.post('/change',JWTauth,changePassword)
-router.put('/edit/:id',JWTauth, upload.single("avatar"),updateUser)
+router.put("/update/:id", JWTauth, upload.single("avatar"), updateUser);
 
 router.post('/reset/')
 router.get('/get',Home)

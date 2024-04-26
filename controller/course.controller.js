@@ -4,7 +4,10 @@ import cloudinary from "cloudinary"
 import path from "path"
 
 
+// const createCourse = async(req,res,next)=>{
+//     const {title,description,category,createdBy} = req.body
 
+// }
 
 const createCourse = async(req,res,next)=>{
     try{
@@ -14,10 +17,14 @@ const createCourse = async(req,res,next)=>{
 
     }
    const course = await Course.create({
-    title,description,category,createdBy,thumbnail:{
-        public_id:'dummy',
-        secure_url:'https://res.cloudinary.com/du9jzqlpt/image/upload/v1674647316/avatar_drzgxv.jpg'
+    title,description,category,createdBy,
+    thumbnail:{
+        public_id:"dummy",
+        secure_url:"https://res.cloudinary.com/du9jzqlpt/image/upload/v1674647316/avatar_drzgxv.jpg"
+  
+        
     }
+     
    })
    if(!course){
     return next(new AppError(" your course not created successfully"),400)
@@ -95,7 +102,7 @@ const getallCourses =  async (req,res,next)=>{
         }
         res.status(200).json({
             success:true,
-            message:" lecture print successfully ",
+            message:" course print successfully ",
             course:course
         })
     
@@ -112,13 +119,17 @@ const getallCourses =  async (req,res,next)=>{
 
 
 const getLecturesbyId =  async (req,res,next)=>{
-    const {id } = req.params;
+   
+
    try{
+    const {id }= req.params;
+    
     const course = await Course.findById(id);
-      return   res.status(200).json({
+                
+     res.status(200).json({
          success:true,
         message:" courses fetched successfully ",
-        lecture: course.lectures
+        lectures: course.lectures
     })
   
    }catch(e){
@@ -154,42 +165,56 @@ const removeCourse = async(req,res,next)=>{
 
 }
 const addlecturecourseById =  async(req,res,next)=>{
-    const {title, description} = req.body;
-    const{id} = req.params;
-    const course = await Course.findById(id)
-    if(!course){
-        return next( new AppError(" you course not exist with this id"),400)
+    const { title, description } = req.body;
+    const { id } = req.params;
+    console.log(title,description,id)
+   let lectureData ={}
+     if (!title || !description) {
+      return next(new AppError('Title and Description are required', 400));
     }
-   const lectureData = {
-    title, description,
-    lecture:{}
-   }
+    const course = await Course.findById(id);
+        console.log(course)
+    if (!course) {
+      return next(new AppError('Invalid course id or course not found.', 400));
+    }
     
-       
+     
+      
+      console.log("lecture  data",lectureData)
+    // Run only if user sends a file
+    console.log(req.file)
     if(req.file){
-        try{
-            const result = await cloudinary.v2.uploader.upload(req.file.path,{folder:'lms'})
-            if(result){
-                lectureData.lecture.public_id = result.public_id
-                lectureData.lecture.secure_url = result.secure_url;
-            }
-
-        }catch(e){
-            return next(new AppError(" your lecture not uploaded"))
-
-        }
+      try{
+       const result = await  cloudinary.v2.uploader.upload(req.file.path,{
+        folder:'lms',
+        resource_type:'video',
+        chunk_size:6000000
+  
+       })
+       if(result){
+        lectureData.public_id = result.public_id;
+        lectureData.secure_url = result.secure_url;
+       }
+      }catch(e){
+        return next(new AppError(` file not uploaded try again ${e.message}`))
+      }
 
     }
-    course.lectures.push(lectureData)
+    console.log(lectureData)
+  
+    course.lectures.push({
+        title,description,
+           lecture:lectureData
+    });
     course.numberofLecture = course.lectures.length;
-    await course.save()
-    res.status(200).json({
-        success:true,
-        message:" your lecture uploaded",
-        course
-    })
-        
-    
+     await course.save();
+     res.status(200).json({
+      success: true,
+      message: 'Course lecture added successfully',
+      course,
+    });
+
+
     
 }
    

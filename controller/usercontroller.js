@@ -66,11 +66,11 @@ const CreateAccount = async (req,res,next)=>{
 
 const LogIn =  async(req,res,next)=>{
    try {
-    const {email,password} = req.body
+    const {email, password,} = req.body
     if(!email||!password){
         return next(new AppError( 'please enter  email and password'))
     }
-    const user = await  User.findOne({email}).select('+password')
+    const user = await User.findOne({email}).select('+password')
 
    if(!(user && !(await user.comparePassword(password)))){
     return next( new AppError(" email and password are  worng"),400)
@@ -92,23 +92,21 @@ const LogIn =  async(req,res,next)=>{
    }
 
 }
-const viewProfile = async  (req,res,next)=>{
-    try{
-        const userId = req.user.id
-        const userInfo = await User.findById(userId)
-        return  res.status(200).json({
-            success:true,
-            message:" user data print successfully",
-            userInfo
-        })
 
-    } catch(e){
-        return next( new AppError(' user does not exist in database ',400))
-
-
-    }
-
+const viewProfile = async(req,res,next)=>{
+  try{
+            const id = req.user.id
+            const user = await User.findById(id)
+            res.status(200).json({
+              success:true,
+              message:" User print successfully",
+              userInfo:user
+            })
+  }catch(e){
+    return next(new AppError( " user does not exist in database"))
+  }
 }
+
 const logOut = (req,res)=>{
     try {
         const cookieOption =  {
@@ -121,7 +119,7 @@ const logOut = (req,res)=>{
         res.cookie("token",null,cookieOption)
         res.status(200).json({
             success:true,
-            message:" user loggdout successfully"
+            message:" user logout successfully"
         })
     } catch (error) {
         return next(new AppError(' user not logdout ',400))
@@ -217,48 +215,110 @@ const changePassword = async(req,res, next) =>{
   })
 
 }
-const updateUser = async(req,res,next)=>{
-  const{fullName} = req.body;
-  const{id} = req.params;
-  const user = await User.findById(id)
-  if(!user){
-    return next(new AppError(" user is not exist in database"),500)
-  }
-  if(req.fullName){
-    user.fullName = fullName
-  }
-  if(req.file){
-    await cloudinary.v2.uploader.destroy(user.avatar.public_id)
-  }
-  console.log(" uploading file" , req.file)
-     if(req.file){
-        
-        try{
-          const result =  await cloudinary.v2.uploader.upload(req.file.path,{
-            folder:'lms',
-            width:250,
-            height:250,
-            gravity:'faces',
-            crop:'fill'
-          })
-          if(result){
-            user.avatar.public_id = result.public_id;
-            user.avatar.secure_url = result.secure_url;
-             // remove file 
-            fs.rm(`uploads/${req.file.filename}`);
-          }
-        }catch(e){
-            return next( new AppError(' file not uploaded try again ',400))
 
-        }
-     }
-     await user.save()
-     res.status(200).json({
-      success:true,
-      message:" your profile update successfully"
-     })
 
-}
+// const updateUser =  async (req,res, next)=>{
+//  const {fullName} = req.body
+//  console.log("Request body name",req.fullName)
+//   const { id } = req.params;
+//  console.log("User id",id)
+//  const user = await User.findById(id)
+//   console.log(" Database user ",user)
+//   if(!user){
+//     return next( new AppError(" user  doesnot exist in database"))
+//   }
+//   console.log(" fullname",fullName)
+//   if(fullName){
+//     user.fullName = fullName
+//   }
+//   if(req.file){
+//     await cloudinary.v2.uploader.destroy(user.avatar.public_id)
+
+//   }
+//   console.log(req.file)
+//   if(req.file){
+//     try{
+//       const result = await cloudinary.v2.uploader.upload(req.file.path,{
+//         folder:'lms',
+//         width:250,
+//         height:250,
+//         crop:"fill",
+//         gravity:"faces"
+//       })
+//       if(result){
+//         user.avatar.public_id  = result.public_id;
+//         user.avatar.secure_url = result.secure_url;
+//       }
+
+//     }catch(e){
+//       return next ( ` your file could not uploaded try again!! ${ e.message}`)
+//     }
+//   }
+//   await user.save();
+//   res.status(200).json({
+//     success:true,
+//     message:" Your profile updated successfully!!",
+//     user
+//   })
+
+  
+// }
+const updateUser = async (req, res, next) => {
+  // Destructuring the necessary data from the req object
+  const { fullName } = req.body;
+  const { id } = req.params;
+
+  const user = await User.findById(id);
+
+  if (!user) {
+    return next(new AppError('Invalid user id or user does not exist'));
+  }
+            console.log(fullName)
+  if (fullName) {
+    user.fullName = fullName;
+  }
+
+  // Run only if user sends a file
+  console.log(req.file)
+  if (req.file) {
+    // Deletes the old image uploaded by the user
+    await cloudinary.v2.uploader.destroy(user.avatar.secure_url);
+
+    try {
+      const result = await cloudinary.v2.uploader.upload(req.file.path, {
+        folder: 'lms', // Save files in a folder named lms
+        width: 250,
+        height: 250,
+        gravity: 'faces', // This option tells cloudinary to center the image around detected faces (if any) after cropping or resizing the original image
+        crop: 'fill',
+      });
+
+      // If success
+      if (result) {
+        // Set the public_id and secure_url in DB
+        user.avatar.public_id = result.public_id;
+        user.avatar.secure_url = result.secure_url;
+
+        // After successful upload remove the file from local storage
+        fs.rm(`uploads/${req.file.filename}`);
+      }
+    } catch (error) {
+      return next(
+        new AppError(error || 'File not uploaded, please try again', 400)
+      );
+    }
+  }
+
+  // Save the user object
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'User details updated successfully',
+    user
+  });
+};
+
 const User1 = (req, res)=>{
  try{
   res.status(200).json({

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import bcrypt  from 'bcrypt'
 import JWT  from 'jsonwebtoken'
 import { config } from "dotenv";
+
 const UserSchema =  new mongoose.Schema({
     fullName:{
         type:String,
@@ -32,14 +33,20 @@ const UserSchema =  new mongoose.Schema({
             type:'String'
         }
     },
+    subscription: {
+        id: String,
+        status: String,
+      },
     role:{type:String,
     enum:['USER','ADMIN'],
     default:'USER'
 },
     forgotPaaswordToken:String,
-    forgotPaaswordExpiry:String
+    forgotPaaswordExpiry:String,
+  
     
-})
+},
+)
 UserSchema.pre('save',async function(next){
     if(!this.isModified('password')){
         return next()
