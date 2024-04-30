@@ -11,7 +11,7 @@ import crypto from 'crypto'
 const cookieOption = {
   maxAge:12*60*60*1000,
   httpOnly:true,
-  secure:process.env.SECRET ==='production' ? true : fals
+  secure:process.env.SECRET ==='production' ? true : false
 }
 console.log(cookieOption)
 const CreateAccount = async (req,res,next)=>{
