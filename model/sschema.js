@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt  from 'bcrypt'
+import crypto from 'crypto'
 import JWT  from 'jsonwebtoken'
 import { config } from "dotenv";
 
@@ -41,8 +42,8 @@ const UserSchema =  new mongoose.Schema({
     enum:['USER','ADMIN'],
     default:'USER'
 },
-    forgotPaaswordToken:String,
-    forgotPaaswordExpiry:String,
+    forgotPasswordToken:String,
+    forgotPasswordExpiry:String,
   
     
 },
@@ -63,6 +64,12 @@ return await bcrypt.compare(plaintextPassword,this.password)
         return await JWT.sign({id:this.id,fullName:this.fullName,email:this.email,role:this.role},
             process.env.SECRET,{expiresIn:'24h'})
 
+    },
+    generateResettoken:async function(){
+        const resetToken = await crypto.randomBytes(20).toString('hex')
+        this.forgotPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+        this.forgotPasswordExpiry = Date.now()+15*60*1000
+        return resetToken;
     }
 }
    

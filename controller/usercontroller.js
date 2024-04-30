@@ -1,3 +1,5 @@
+import { config, configDotenv } from "dotenv";
+config()
 import { JWTauth } from "../middleware/JWT.js";
 import path from "path";
 import sendEmail from "../utils/sendMail.js"
@@ -5,10 +7,11 @@ import AppError from "../utils/utils.js";
 import User  from '../model/sschema.js'
 import cloudinary from "cloudinary"
 import fs from "fs/promises"
+import crypto from 'crypto'
 const cookieOption = {
   maxAge:12*60*60*1000,
   httpOnly:true,
-  secure:true
+  secure:process.env.SECRET ==='production' ? true : fals
 }
 console.log(cookieOption)
 const CreateAccount = async (req,res,next)=>{
@@ -111,7 +114,7 @@ const logOut = (req,res)=>{
     try {
         const cookieOption =  {
             maxAge:0,
-            secure:true,
+            secure:  process.env.SECRET === 'production' ? true : false,
             httpOnly:true,
             
     
@@ -138,17 +141,19 @@ const forgotPassword = async (req,res,next)=>{
   if(!email){
     return next( new AppError( "please enter your email",500))
   }
+  console.log(email)
   const user =  await User.findOne({email})
   if(!user){
     return next(new AppError(" email is not exist in database",500))
   }
-  const resetToken = await user. generateResettoken()
+  const resetToken = await user.generateResettoken()
   console.log(" TOken ",resetToken) 
- /* await user.save() */
-  const passwordURL = ` ${ process.env.FORNTENDURL} /reset-password/ ${ resetToken}`
-  console.log(" Password url",passwordURL)
+  await user.save() 
+ console.log(process.env.FORNTEND_URL)
+ const resetPasswordUrl = `${process.env.FORNTEND_URL}reset-password/${resetToken}`
+  console.log(" Password url",resetPasswordUrl)
   const subject = ' Reset password'
-  const message = ` reset your password <a href ${passwordURL} target ="blanck">Reset your Password </a>`
+  const message = ` reset your password <a href ${resetPasswordUrl} target ="blanck">Reset your Password </a>`
   try {
 
      await sendEmail(email,subject,message)
@@ -158,7 +163,7 @@ const forgotPassword = async (req,res,next)=>{
      })
     
   } catch (e) {
-    user.forgotPasswordExpiry = undefined
+    user.forgotPasswordExpiry= undefined
     user.forgotPasswordToken = undefined
     await user.save()
     return next(new AppError (` Token not sent ${e.message}`))
@@ -170,7 +175,9 @@ const resetpassword =  async (req,res,next)=>{
   const{password} =  req.body
  try{
   const forgotPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex')
-  const user = await User.findOne({forgotPasswordToken,forgotPasswordExpiry:{$gt:Date.now()}})
+  console.log(forgotPasswordToken)
+ const user  = await User.findOne({forgotPasswordToken})
+  console.log(user)
   if(!user){
     return next( new AppError ( "token invalid and expired"),500)
   }

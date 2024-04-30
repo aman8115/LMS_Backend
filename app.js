@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json({ limit: '10mb' })); // Set maximum payload size to 10MB (adjust as needed)
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-console.log(process.env.FORNTENDURL);
+console.log("frontend url",process.env.FORNTEND_URL);
 app.use(
   cors({
     origin: [process.env.FORNTENDURL],
